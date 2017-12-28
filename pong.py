@@ -4,8 +4,24 @@ from kivy.properties import NumericProperty, ReferenceListProperty, ObjectProper
 from kivy.vector import Vector
 from kivy.clock import Clock
 from kivy.core.window import Window
+import math
 
 Window.clearcolor = (.1, .9, .9, .6)
+
+class Point:
+    def __init__(self,x_init,y_init):
+        self.x = x_init
+        self.y = y_init
+        
+def GetAngleOfLineBetweenTwoPoints(p1, p2):
+    xDiff = p2.x - p1.x
+    yDiff = p2.y - p1.y
+    return math.degrees(math.atan2(yDiff, xDiff))
+
+def PaddleTargetY(point1,point2,distancex):
+    angle1 = GetAngleOfLineBetweenTwoPoints(point1,point2)
+    return (distancex * math.tan(math.radians(angle1)))
+
 
 class PongPaddle(Widget):
     score = NumericProperty(0)
@@ -17,6 +33,7 @@ class PongPaddle(Widget):
             bounced = Vector(-1 * vx, vy)
             vel = bounced * 1.1
             ball.velocity = vel.x, vel.y + offset
+            return True
 
 
 class PongBall(Widget):
@@ -33,6 +50,7 @@ class PongGame(Widget):
     player1 = ObjectProperty(None)
     player2 = ObjectProperty(None)
     startgame = False
+    p1, p2 = None, None
 
     def __init__(self, **kwargs):
         super(PongGame, self).__init__(**kwargs)
@@ -75,14 +93,25 @@ class PongGame(Widget):
     def update(self, dt):
         if self.startgame: 
             self.ball.move()
+        
+        # self play player2
+        if self.ball.velocity_x > 0:
+            if self.p1 is None: 
+                self.p1 = Point(self.ball.x,self.ball.y)
+            elif self.p1 is not None and self.p2 is None:   
+                self.p2 = Point(self.ball.x,self.ball.y)
+                self.player2.center_y = self.p1.y + PaddleTargetY(self.p1,self.p2,self.width)
+             
 
         # bounce of paddles
-        self.player1.bounce_ball(self.ball)
+        if self.player1.bounce_ball(self.ball):
+            self.p1, self.p2 = None, None
         self.player2.bounce_ball(self.ball)
 
         # bounce ball off bottom or top
         if (self.ball.y < self.y) or (self.ball.top > self.top):
             self.ball.velocity_y *= -1
+            self.p1, self.p2 = None, None
 
         # went of to a side to score point?
         if self.ball.x < self.x:
