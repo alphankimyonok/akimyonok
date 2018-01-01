@@ -7,7 +7,7 @@ from kivy.core.window import Window
 import math
 
 Window.clearcolor = (.1, .9, .9, .6)
-
+def sign(x): return 1 if x >= 0 else -1
 class Point:
     def __init__(self,x_init,y_init):
         self.x = x_init
@@ -51,6 +51,7 @@ class PongGame(Widget):
     player2 = ObjectProperty(None)
     startgame = False
     p1, p2 = None, None
+    movesteps = 0
 
     def __init__(self, **kwargs):
         super(PongGame, self).__init__(**kwargs)
@@ -93,19 +94,28 @@ class PongGame(Widget):
     def update(self, dt):
         if self.startgame: 
             self.ball.move()
+        else:
+            self.p1, self.p2 = None, None
+            self.movesteps = 0      
         
-        # self play player2
+       # self play player2
         if self.ball.velocity_x > 0:
             if self.p1 is None: 
                 self.p1 = Point(self.ball.x,self.ball.y)
             elif self.p1 is not None and self.p2 is None:   
                 self.p2 = Point(self.ball.x,self.ball.y)
-                self.player2.center_y = self.p1.y + PaddleTargetY(self.p1,self.p2,self.width)
+                #self.player2.center_y = self.p1.y + PaddleTargetY(self.p1,self.p2,self.width)
+                self.movesteps = int(((self.p1.y + PaddleTargetY(self.p1,self.p2,self.width)) - self.player2.center_y) / 10)
+            else:
+                if abs(self.movesteps) > 0:
+                    self.player2.center_y += sign(self.movesteps) * 10
+                    self.movesteps -= 1*sign(self.movesteps)
              
 
         # bounce of paddles
         if self.player1.bounce_ball(self.ball):
             self.p1, self.p2 = None, None
+            self.movesteps = 0
         self.player2.bounce_ball(self.ball)
 
         # bounce ball off bottom or top
